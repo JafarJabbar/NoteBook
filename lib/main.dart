@@ -1,8 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:notebook/models/categories.dart';
 import 'package:notebook/models/notes.dart';
+import 'package:notebook/screens/category_page.dart';
 import 'screens/note_details.dart';
 import 'utils/database_helper.dart';
+import 'utils/date_helper.dart';
 
 void main() => runApp(
       MaterialApp(
@@ -28,9 +31,20 @@ class NoteList extends StatelessWidget {
     return Scaffold(
       key: _scaffold,
       appBar: AppBar(
-        title: Center(
-          child: Text("NoteBook"),
-        ),
+        actions: <Widget>[
+          PopupMenuButton(
+            itemBuilder: (context){
+              return [
+                PopupMenuItem(child: ListTile(leading: Icon(Icons.category),title: Text("Kateqoriyalar"),onTap: (){
+                  Navigator.push(context, MaterialPageRoute(builder: (context){
+                      return CategoryPage();
+                  }));
+                },))
+              ];
+            },
+          )
+        ],
+        title: Text("NoteBook"),
       ),
       body: NoteListView(),
       floatingActionButton: Column(
@@ -54,7 +68,14 @@ class NoteList extends StatelessWidget {
           ),
           FloatingActionButton(
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context)=>NoteDetails(title: "Yeni qeyd",),),);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NoteDetails(
+                    title: "Yeni qeyd",
+                  ),
+                ),
+              );
             },
             heroTag: "newNote",
             tooltip: "Yeni qeyd",
@@ -64,9 +85,8 @@ class NoteList extends StatelessWidget {
       ),
     );
   }
-
-Padding categoryForm(GlobalKey<FormState> key, String categoryName,
-  BuildContext context, GlobalKey<ScaffoldState> _scaffold) {
+  Padding categoryForm(GlobalKey<FormState> key, String categoryName,
+      BuildContext context, GlobalKey<ScaffoldState> _scaffold) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: SimpleDialog(
@@ -150,12 +170,10 @@ Padding categoryForm(GlobalKey<FormState> key, String categoryName,
   }
 }
 
-
 class NoteListView extends StatefulWidget {
   @override
   _NoteListViewState createState() => _NoteListViewState();
 }
-
 
 class _NoteListViewState extends State<NoteListView> {
   List<Notes> allNotes;
@@ -165,29 +183,164 @@ class _NoteListViewState extends State<NoteListView> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    allNotes=List<Notes>();
-    dbHelper=DatabaseHelper();
-    dbHelper.getNotes()
-    .then((notes){
-      for(Map note in notes){
-        allNotes.add(Notes.fromMap(note));
-      }
-      setState(() {});
-    });
-
-
-
+    dbHelper = DatabaseHelper();
   }
-
 
   @override
   Widget build(BuildContext context) {
-    return allNotes.length<=0 ? Center(child: CircularProgressIndicator(),)
-        :
-        ListView.builder(itemCount: allNotes.length,itemBuilder: (context,index){
-            return ListTile(
-              title: Text(allNotes[index].note_title),
-            );
+    if(allNotes==null){
+      allNotes = List<Notes>();
+      getAllNotes();
+    }
+    return ListView.builder(
+        itemCount: allNotes.length,
+        itemBuilder: (context, index) {
+          return ExpansionTile(
+            title: Text(allNotes[index].note_title),
+            leading: CircleAvatar(
+              backgroundColor: Colors.black26,
+              radius: 27,
+              child: setPriority(allNotes[index].note_priority),
+            ),
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  padding: EdgeInsets.all(10),
+                  child: Column(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text("Başlıq  : "),
+                            Text(allNotes[index].note_title)
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text("Kateqoriya  : "),
+                            Text(allNotes[index].category_title)
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text("Tarix  : "),
+                            Text(DateHelper().dateFormat(DateTime.parse(
+                                allNotes[index].note_date)))
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text("Kontent  : "),
+                            Text(allNotes[index].note_content)
+                          ],
+                        ),
+                      ),
+                      ButtonBar(
+                        alignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => NoteDetails(
+                                    title: "Yeni qeyd",
+                                    editNote: allNotes[index]
+                                  ),
+                                ),
+                              );
+
+                            },
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () {
+                              deleteNote(allNotes[index].note_id);
+                              Scaffold.of(context).showSnackBar(
+                                  SnackBar(
+                                      backgroundColor: Colors.red,
+                                      content: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: <Widget>[
+                                          Text(
+                                              "Qeyd uğurla silindi"
+                                          ),
+                                          Icon(Icons.done)
+                                        ],
+                                      )));
+                            },
+                            color: Colors.red,
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+              )
+            ],
+          );
         });
+  }
+
+  setPriority(int note_priority) {
+    var widget;
+    switch (note_priority) {
+      case 0:
+        widget = Text(
+          'Çox vacib',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.red, fontSize: 12),
+        );
+        break;
+      case 1:
+        widget = Text(
+          'Vacib',
+          style: TextStyle(color: Colors.orange, fontSize: 12),
+        );
+        break;
+      case 2:
+        widget = Text(
+          'Lazımsız',
+          style: TextStyle(color: Colors.green, fontSize: 12),
+        );
+        break;
+    }
+    return widget;
+  }
+
+  deleteNote(int note_id) {
+    dbHelper.deleteNote(note_id);
+    setState(() {});
+  }
+
+  void getAllNotes() {
+
+    dbHelper.getNoteList().then((value) {
+      setState(() {
+        allNotes=value;
+      });
+    });
   }
 }

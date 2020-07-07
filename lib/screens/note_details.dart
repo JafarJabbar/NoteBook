@@ -8,8 +8,9 @@ import 'package:sqflite/sqflite.dart';
 
 class NoteDetails extends StatefulWidget {
   String title;
+  Notes editNote;
 
-  NoteDetails({this.title});
+  NoteDetails({this.title,this.editNote});
 
   @override
   _NoteDetailsState createState() => _NoteDetailsState();
@@ -32,6 +33,10 @@ class _NoteDetailsState extends State<NoteDetails> {
     categories = List<Categories>();
     priorityList=['Çox vacib',"Vacib","Lazımsız"];
     dbHelper = DatabaseHelper();
+    if(widget.editNote!=null){
+      selectedCategory=widget.editNote.category_id;
+      selectedPriority=widget.editNote.note_priority;
+    }
     dbHelper.getCategories().then((allCategories) {
       for (Map category in allCategories) {
         categories.add(Categories.fromMap(category));
@@ -55,7 +60,8 @@ class _NoteDetailsState extends State<NoteDetails> {
           child: Column(
             children: <Widget>[
               TextFormField(
-                decoration: InputDecoration(
+                initialValue: widget.editNote !=null ? widget.editNote.note_title : null,
+                 decoration: InputDecoration(
                   hintText: "Qeydin başlığı",
                   labelText: "Başlıq",
                   border: OutlineInputBorder(),
@@ -105,6 +111,7 @@ class _NoteDetailsState extends State<NoteDetails> {
               SizedBox(height: 20,),
               TextFormField(
                 maxLines: 4,
+                initialValue: widget.editNote !=null ? widget.editNote.note_content : null,
                 decoration: InputDecoration(
                   hintText: "Qeyd açıqlaması",
                   labelText: "Açıqlama",
@@ -154,24 +161,28 @@ class _NoteDetailsState extends State<NoteDetails> {
                     onPressed: (){
                       if(formKey.currentState.validate()){
                         formKey.currentState.save();
-                        var now=DateTime.now();
-                        dbHelper.insertNote(Notes(selectedCategory,noteTitle,noteContent,selectedPriority,now.toString())).then((value){
-                          scaffold.currentState.showSnackBar(
-                              SnackBar(
-                                backgroundColor: Colors.green,
-                                content: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: <Widget>[
-                                    Text('Qeyd uğurla əlavə olundu!'),
-                                    Icon(Icons.done)
-                                  ],
-                                ),
-                                duration: Duration(seconds: 3),
-                              )
-                          );
-                          sleep(Duration(seconds: 3));
-                          Navigator.pop(context);
-                        });
+                        if(widget.editNote==null){
+                          var now=DateTime.now();
+                          dbHelper.insertNote(Notes(selectedCategory,noteTitle,noteContent,selectedPriority,now.toString())).then((value){
+                            formKey.currentState.reset();
+                            scaffold.currentState.showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: Colors.green,
+                                    content: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: <Widget>[
+                                        Text('Qeyd uğurla əlavə olundu!'),
+                                        Icon(Icons.done)
+                                      ],
+                                    ),
+                                    duration: Duration(seconds: 3),
+                                  )
+                            );
+                          });
+                        }else{
+                          dbHelper.updateNote(Notes.withId(widget.editNote.note_id,selectedCategory,noteTitle,noteContent,selectedPriority,widget.editNote.note_date))
+                            .then((value) => Navigator.pop(context));
+                        }
                       }
                   },
                     color: Theme.of(context).primaryColor,

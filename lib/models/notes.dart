@@ -1,6 +1,14 @@
 class Notes {
   int _note_id;
   int _category_id;
+  String _category_title;
+
+  String get category_title => _category_title;
+
+  set category_title(String value) {
+    _category_title = value;
+  }
+
   String _note_title;
   String _note_content;
   int _note_priority;
@@ -33,6 +41,7 @@ class Notes {
   Notes.fromMap(Map<String, dynamic> map) {
     this._note_id = map['note_id'];
     this._category_id = map['category_id'];
+    this._category_title = map['category_title'];
     this._note_title = map['note_title'];
     this._note_content = map['note_content'];
     this._note_date = map['note_date'];

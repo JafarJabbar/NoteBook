@@ -66,10 +66,29 @@ class DatabaseHelper{
       return listCategory;
   }
 
-  Future<List<Map<String,dynamic>>> getNotes()async{
+
+  Future<List<Map<String,dynamic>>> getNotes() async {
     Database db= await _getDatabase();
-    var listNotes=db.query('notes',orderBy: 'note_id DESC');
+    var listNotes=await db.rawQuery('SELECT * FROM notes INNER JOIN categories ON notes.category_id=categories.category_id ORDER BY note_id DESC');
     return listNotes;
+  }
+
+  Future<List<Notes>> getNoteList() async {
+    var noteMapList= await getNotes();
+    var listNotes=List<Notes>();
+    for(Map note in noteMapList){
+        listNotes.add(Notes.fromMap(note));
+    }
+    return listNotes;
+  }
+
+  Future<List<Categories>> getCategoryList() async {
+    var categoryMapList= await getCategories();
+    var listNCategories=List<Categories>();
+    for(Map category in categoryMapList){
+        listNCategories.add(Categories.fromMap(category));
+    }
+    return listNCategories;
   }
 
   Future<int> insertCategory(Categories category) async{
@@ -85,7 +104,7 @@ class DatabaseHelper{
     return insertedNote;
   }
 
-  updateNote(Notes note) async{
+  Future<int> updateNote(Notes note) async{
     Database db = await _getDatabase();
     var result= await db.update('notes',note.toMap(),where: 'note_id = ?',whereArgs: [note.note_id]);
     return result;
@@ -98,7 +117,7 @@ class DatabaseHelper{
     return result;
   }
 
-  deleteCategory(int category_id) async{
+  Future<int> deleteCategory(int category_id) async{
     Database db = await _getDatabase();
     var result= await db.delete('categories',where: 'category_id = ?',whereArgs: [category_id]);
     return result;
